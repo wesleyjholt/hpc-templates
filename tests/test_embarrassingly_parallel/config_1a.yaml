@@ -2,14 +2,21 @@ input_data_file: test_embarrassingly_parallel/data.txt
 single_run_module_parent_dir: ./test_embarrassingly_parallel
 single_run_module: single_run
 single_run_function: single_run
-container_image: mpi.sif
+container_image: jax-probml.sif
 mpi: pmi2
 generate_new_ids: true
+prerun_commands: "echo 'NO INSTALL COMMANDS'"
 main_slurm_args: 
   array: 1-4
   time: 00:20:00
   mem-per-cpu: 1024M
   ntasks: null
+  nodes: 1
+  gpus-per-node: 1
   account: standby
+split_slurm_args:
+  time: 00:20:00
+  gpus-per-node: 1
 merge_slurm_args:
   time: 00:20:00
+  gpus-per-node: 1

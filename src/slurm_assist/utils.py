@@ -174,7 +174,7 @@ def cancel_slurm_job(job_id: int, verbose: bool = True):
 def submit_slurm_job(
     slurm_args: dict, 
     job_script_filename: str, 
-    verbose: bool = Optional[True],
+    verbose: bool = Optional[bool],
     dependency_ids: Optional[list[list[int]]] = None, 
     dependency_conditions: Optional[list[str]] = None
 ) -> int:

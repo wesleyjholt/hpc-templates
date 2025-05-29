@@ -1,0 +1,30 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%post
+    # Non-interactive installation
+    export DEBIAN_FRONTEND=noninteractive
+
+    # Install pip
+    apt-get update
+    apt-get install -y python3-pip
+    pip install --upgrade pip
+
+    # Install JAX
+    pip install --upgrade "jax[cuda12_pip]"
+    
+    # Install other packages
+    pip install diffrax blackjax optax numpyro seaborn pyyaml-include
+
+    # Print to show completion
+    NOW=`date`
+    echo "export NOW=\"${NOW}\"" >> $APPTAINER_ENVIRONMENT
+
+%runscript
+    echo "Container was created $NOW"
+    echo "Running Python script: $*"
+    python3 "$@"
+
+%help
+    This .def file installs jax and some jax-related python packages on ubuntu.
+    Use it to run Python scripts directly: jax-probml.sif your_script.py

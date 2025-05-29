@@ -2,12 +2,13 @@ program: ./test_single/program.py  # Required
 program_args:  # Required
   foo: "I_am_the_argument_foo"
   bar: 100.0
-container_image: mpi.sif  # Required
+container_image: jax-probml.sif  # Required
 tmp: test_single/tmp  # Required
 slurm_args:  # Required
   job-name: test_single
   time: "00:05:00"
   nodes: 1
   ntasks: 1
+  gpus-per-node: 1
   mem-per-cpu: "1024M"
   array: 1-3

@@ -17,15 +17,16 @@ script_template_content = \
 module purge
 
 # Set up CPU monitoring
-module load utilities monitor
-monitor cpu percent > {{ resource_monitoring_dir }}/cpu-percent-run-$SLURM_JOB_ID{% if is_array_job %}_$SLURM_ARRAY_TASK_ID{% endif %}.log &
-CPU_USAGE_PID=$!
-monitor cpu memory > {{ resource_monitoring_dir }}/cpu-memory-run-$SLURM_JOB_ID{% if is_array_job %}_$SLURM_ARRAY_TASK_ID{% endif %}.log &
-CPU_MEM_PID=$!
+# module load monitor
+# monitor cpu percent > {{ resource_monitoring_dir }}/cpu-percent-run-$SLURM_JOB_ID{% if is_array_job %}_$SLURM_ARRAY_TASK_ID{% endif %}.log &
+# CPU_USAGE_PID=$!
+# monitor cpu memory > {{ resource_monitoring_dir }}/cpu-memory-run-$SLURM_JOB_ID{% if is_array_job %}_$SLURM_ARRAY_TASK_ID{% endif %}.log &
+# CPU_MEM_PID=$!
 
 # Set up GPU monitoring if requested
 {% if use_gpu %}
-module load utilities monitor
+nvidia-smi
+module load monitor
 monitor gpu percent > {{ resource_monitoring_dir }}/gpu-percent-run-$SLURM_JOB_ID{% if is_array_job %}_$SLURM_ARRAY_TASK_ID{% endif %}.log &
 GPU_USAGE_PID=$!
 monitor gpu memory > {{ resource_monitoring_dir }}/gpu-memory-run-$SLURM_JOB_ID{% if is_array_job %}_$SLURM_ARRAY_TASK_ID{% endif %}.log &
@@ -33,17 +34,31 @@ GPU_MEM_PID=$!
 {% endif %}
 
 # Run computations
-apptainer run {{ container_image }} {{ program }} \
+# apptainer run {{ container_image }} {{ program }} \
+# {% for key, value in program_args.items() if value is not none %}\
+# {% if value is boolean and value %}--{{ key }} \
+# {% elif value is not boolean %}--{{ key }}=\"{{ value }}\" \
+# {% endif %}{% endfor %}
+# apptainer run {{ container_image }} python3 {{ program }} \
+# {% for key, value in program_args.items() if value is not none %}\
+# {% if value is boolean and value %}--{{ key }} \
+# {% elif value is not boolean %}--{{ key }}=\"{{ value }}\" \
+# {% endif %}{% endfor %}
+apptainer exec --nv --writable-tmpfs {{ container_image }} bash -c "
+{{ prerun_commands }}
+python3 {{ program }} \
 {% for key, value in program_args.items() if value is not none %}\
 {% if value is boolean and value %}--{{ key }} \
 {% elif value is not boolean %}--{{ key }}=\"{{ value }}\" \
 {% endif %}{% endfor %}
+"
+
 
 # Shut down the resource monitors
-kill -s INT $CPU_USAGE_PID $CPU_MEM_PID
-{% if use_gpu %}
-kill -s INT $GPU_USAGE_PID $GPU_MEM_PID
-{% endif %}
+# kill -s INT $CPU_USAGE_PID $CPU_MEM_PID
+# {% if use_gpu %}
+# kill -s INT $GPU_USAGE_PID $GPU_MEM_PID
+# {% endif %}
 """
 script_template = Template(script_template_content)
 
@@ -56,13 +71,16 @@ class SingleJob(JobGroup):
         super().__init__(config)
         self.check_config_is_valid()
 
+        print(self['program'])
+
         self.job_script = script_template.render(dict(
             container_image=self['container_image'],
             program=self['program'],
             program_args=self['program_args'],
             stdout_dir=self.stdout_dir,
             resource_monitoring_dir=self.resource_monitoring_dir,
-            is_array_job = 'array' in self['slurm_args'].keys()
+            is_array_job = 'array' in self['slurm_args'].keys(),
+            prerun_commands=self['prerun_commands'] if 'prerun_commands' in self.keys() else '',
         ))
         self.job_id = None
     

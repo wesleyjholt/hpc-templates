@@ -33,7 +33,7 @@ main_script_template_content = \
 module purge
 
 # Set up CPU monitoring
-module load utilities monitor
+module load monitor
 monitor cpu percent > {{ resource_monitoring_dir }}/cpu-percent-run-${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}.log &
 CPU_USAGE_PID=$!
 monitor cpu memory > {{ resource_monitoring_dir }}/cpu-memory-run-${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}.log &
@@ -41,7 +41,7 @@ CPU_MEM_PID=$!
 
 {% if use_gpu %}
 # Set up GPU monitoring
-module load utilities monitor
+module load monitor
 monitor gpu percent > {{ resource_monitoring_dir }}/gpu-percent-run-${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}.log &
 GPU_USAGE_PID=$!
 monitor gpu memory > {{ resource_monitoring_dir }}/gpu-memory-run-${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}.log &
@@ -49,7 +49,11 @@ GPU_MEM_PID=$!
 {% endif %}
 
 # Run computations
-srun --mpi={{ mpi }} apptainer run {{ container_image }} {{ python_script }} --array-id $SLURM_ARRAY_TASK_ID {{ python_script_args }}
+# srun --mpi={{ mpi }} apptainer run {{ container_image }} {{ python_script }} --array-id $SLURM_ARRAY_TASK_ID {{ python_script_args }}
+apptainer exec {% if use_gpu %}--nv {% endif %}--writable-tmpfs {{ container_image }} bash -c "
+{{ prerun_commands }}  # pip install --no-cache-dir "../.."
+python3 {{ python_script }} --array-id $SLURM_ARRAY_TASK_ID {{ python_script_args }}
+"
 
 # Shut down the resource monitors
 kill -s INT $CPU_USAGE_PID $CPU_MEM_PID
@@ -95,7 +99,8 @@ class EmbarrassinglyParallelJobs(JobGroup):
             mpi=self['mpi'],
             use_gpu=self['use_gpu'],
             stdout_dir=self.stdout_dir,
-            resource_monitoring_dir=self.resource_monitoring_dir
+            resource_monitoring_dir=self.resource_monitoring_dir,
+            prerun_commands=self['prerun_commands'],
         ))
         self.main_job_id = None
 

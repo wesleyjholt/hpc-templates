@@ -20,23 +20,20 @@ def main(
 
     Note that array_id is the job array task ID, not the SLURM job ID.
     """
-    print('ntasks_per_job: ', ntasks_per_job)
-    print(type(ntasks_per_job))
-    if ntasks_per_job is not None:
-        from mpi4py import MPI
-        batch_id = MPI.COMM_WORLD.rank
+    # TODO: Make it so that we get the mpi argument passed into this function to tell us whether to do mpi or not, not just infer it from the ntasks_per_job argument. That way, we can uncomment the below
+    # if ntasks_per_job is not None:
+    #     from mpi4py import MPI
+    #     batch_id = MPI.COMM_WORLD.rank
     job_array_ = parse_slurm_array(job_array)
     array_id_ = to_zero_based_indexing(array_id)
 
     # Load data batch
-    print(job_array_[array_id_])
     if ntasks_per_job is None:
-        print('Here?')
         data_batch_filepath = os.path.join(batched_data_dir, f'data_{job_array_[array_id_]}.pkl')
     else:
-        print('Or here?')
         data_batch_filepath = os.path.join(batched_data_dir, f'data_{job_array_[array_id_]}_{batch_id}.pkl')
     ids_and_data_batch = load_pickle(data_batch_filepath)
+
     if len(ids_and_data_batch) == 0:
         result = []
         ids = []

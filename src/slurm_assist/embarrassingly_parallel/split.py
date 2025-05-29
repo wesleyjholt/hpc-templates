@@ -34,8 +34,7 @@ def main(
     num_jobs = len(job_array_)
     
     # Import the data file
-    # data = load_csv(input_file)
-    data = pd.read_csv(input_file).values.tolist()
+    data = pd.read_csv(input_file, header=None).values.tolist()
     
     # Give each data entry a unique ID
     if generate_new_ids:
@@ -44,7 +43,7 @@ def main(
     else:
         is_valid_id = list(map(lambda x: str(x[0]).isdigit(), data))
         if not all(is_valid_id):
-            raise ValueError('Tried to parse the the first column of the input csv file {input_file} as IDs, but \n \
+            raise ValueError(f'Tried to parse the the first column of the input csv file {input_file} as IDs, but \n \
                              at least one entry is not an integer. Set generate_new_ids=True to generate new IDs.')
         print('Using existing IDs')
         ids = list(map(lambda x: int(x[0]), data))
@@ -57,7 +56,6 @@ def main(
         return [a[i*k+min(i, m):(i+1)*k+min(i+1, m)] for i in range(n)]
 
     if ntasks_per_job is None:
-        print('ntasks_per_job: ', ntasks_per_job)
         data_batches = _split_list(data, num_jobs)
         for i, batch in enumerate(data_batches):
             data_batch_filepath = os.path.join(batched_data_dir, f'data_{job_array_[i]}.pkl')
@@ -105,7 +103,7 @@ if __name__ == '__main__':
     print('Contents of utils parent directory:')
     print(os.listdir(args.utils_parent_dir))
     try:
-        from utils import load_csv, save_pickle, parse_slurm_array
+        from utils import save_pickle, parse_slurm_array
     except:
         raise Exception('Could not import utils module. Make sure the --parent-dir argument is pointing to the package\'s embarrassingly_parallel directory.')
     print('args.ntasks_per_job: ', args.ntasks_per_job)
